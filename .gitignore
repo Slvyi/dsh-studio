@@ -1,0 +1,16 @@
+# dependencies / build outputs
+node_modules/
+out/
+dist/
+release/
+
+# vendored pnpm standalone bundle (fetched by scripts/download-pnpm.mjs)
+vendor/pnpm/
+vendor/*.tar.gz
+vendor/pnpm.version
+
+# macOS noise
+.DS_Store
+
+# logs
+*.log
