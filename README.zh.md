@@ -81,10 +81,8 @@ pnpm package:mac:arm64  # 或 pnpm package:mac:x64
 
 ## 路线图
 
-- Apple Developer ID 签名 + notarize 公证(公开分发必需)
-- electron-updater 自动更新
-- Intel(x64)构建与双架构 CI
-- 上游版本自动升级(当前:watch 自动开 issue;下一步:自动 bump 依赖并重建)
+- 多平台支持(Intel x64、Windows/Linux)
+- 自动更新(electron-updater)
 
 ## 项目结构
 

@@ -81,10 +81,8 @@ Notes:
 
 ## Roadmap
 
-- Sign with an Apple Developer ID and notarize (required for smooth public distribution)
-- Automatic updates via electron-updater
-- Intel (x64) builds and dual-architecture CI
-- Automated upstream upgrades (today: watch workflow opens an issue; next: auto-bump dependencies and rebuild)
+- Multi-platform support (Intel x64, Windows/Linux)
+- Automatic updates (electron-updater)
 
 ## Project layout
 
