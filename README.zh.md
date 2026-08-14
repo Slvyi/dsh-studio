@@ -96,3 +96,7 @@ src/shared/contracts.ts  启动阶段快照类型
 ## 致谢
 
 本项目完全使用 DeepSeek vibe coding 开发,如有问题请见谅。
+
+## 开源协议
+
+[MIT](LICENSE)
