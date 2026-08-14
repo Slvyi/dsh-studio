@@ -5,11 +5,11 @@ name: upstream-watch
 # pins the npm-published dsh; a new upstream release means we should bump
 # dependencies and ship a new build.
 
-on:
+"on":
   schedule:
     # every 6 hours
     - cron: '0 */6 * * *'
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   issues: write
