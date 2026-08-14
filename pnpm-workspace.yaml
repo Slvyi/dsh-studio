@@ -1,6 +1,11 @@
 allowBuilds:
   electron: true
   esbuild: true
+  '@deepseek-ai/dsh-subprocess-local': true
+  '@google/genai': true
+  koffi: true
+  node-pty: true
+  protobufjs: true
 minimumReleaseAgeExclude:
   - '@deepseek-ai/cordis-plugin-group@1.0.1'
   - '@deepseek-ai/cordis-plugin-hmr@1.0.16'
