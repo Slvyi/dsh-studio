@@ -90,4 +90,4 @@ src/shared/contracts.ts  boot stage snapshot types
 
 ## Acknowledgments
 
-This project was developed entirely with DeepSeek vibe coding — please forgive any rough edges. And right now: 梁圣 is here!
+This project was developed entirely with DeepSeek vibe coding — please forgive any rough edges. Right now the era is 梁圣 — it may not always be.
