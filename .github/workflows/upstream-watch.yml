@@ -1,0 +1,55 @@
+name: upstream-watch
+
+# Watch the published @deepseek-ai/dsh family for new releases and open an
+# issue when our packaged runtime falls behind. DSH Studio's packaged mode
+# pins the npm-published dsh; a new upstream release means we should bump
+# dependencies and ship a new build.
+
+on:
+  schedule:
+    # every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check upstream versions
+        id: check
+        run: node scripts/check-upstream.mjs --json > /tmp/upstream.json
+        continue-on-error: true
+
+      - name: Open issue when outdated
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          HAS_UPDATE=$(node -e "const j=require('/tmp/upstream.json'); console.log(j.hasUpdate)")
+          if [ "$HAS_UPDATE" != "true" ]; then
+            echo "upstream current — nothing to do"
+            exit 0
+          fi
+          OUTDATED=$(node -e "const j=require('/tmp/upstream.json'); console.log(j.rows.filter(r=>r.outdated).map(r=>r.pkg+'@'+r.locked+' -> '+r.latest).join(', '))")
+          TITLE="upstream: dsh runtime outdated ($OUTDATED)"
+          # Skip if an open issue with the same title already exists.
+          EXISTS=$(gh issue list --state open --search "upstream: dsh runtime outdated" --json number --jq 'length')
+          if [ "$EXISTS" -gt 0 ]; then
+            echo "issue already open"
+            exit 0
+          fi
+          gh issue create --title "$TITLE" --body "The packaged @deepseek-ai/dsh runtime is behind the latest npm release.
+
+$OUTDATED
+
+1. \`node scripts/check-upstream.mjs\` to confirm
+2. Bump the \`@deepseek-ai/dsh-*\` dependencies in package.json
+3. \`pnpm install && pnpm package:mac:arm64\`
+4. Create a new GitHub Release with the fresh DMG
+
+(This issue was opened automatically by the upstream-watch workflow.)"

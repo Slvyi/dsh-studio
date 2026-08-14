@@ -32,7 +32,7 @@ DSH Studio runs the official `@deepseek-ai/dsh` runtime (the same one `dsh web` 
 
 5. Launch and go. To move from another machine, copy the whole `~/.dsh` directory — everything comes with it.
 
-> Requirements: Apple Silicon, macOS 13+. arm64 builds only; Intel is not supported yet.
+> Requirements: Apple Silicon, macOS 12+. arm64 builds only; Intel is not supported yet.
 
 ## Development
 
@@ -70,7 +70,7 @@ Notes:
 
 - The pnpm standalone bundle is embedded in the app so `dsh plugin` works on clean machines; `package:*` scripts fetch it automatically, `PNPM_MIRROR` switches the mirror
 - The packaged mode runs the npm-published `@deepseek-ai/dsh` via `ELECTRON_RUN_AS_NODE`; use `DSH_SOURCE_REPO` for the latest `main`
-- With an Apple Developer ID certificate, electron-builder signs automatically (not notarized); notarize before public distribution
+- Builds are **unsigned by default** (adhoc, `dmg.sign: false`). Before public distribution: sign with an Apple Developer ID and notarize.
 
 ## DeepSeek Harness integration
 

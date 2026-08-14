@@ -32,7 +32,7 @@ DSH Studio 运行官方 `@deepseek-ai/dsh` 运行时(与 `dsh web` 启动的是�
 
 5. 启动即用。换机器:直接拷贝整个 `~/.dsh` 目录,一切随行。
 
-> 要求:Apple Silicon,macOS 13+。仅 arm64 构建,暂不支持 Intel。
+> 要求:Apple Silicon,macOS 12+。仅 arm64 构建,暂不支持 Intel。
 
 ## 本地调试
 
@@ -70,7 +70,7 @@ pnpm package:mac:arm64  # 或 pnpm package:mac:x64
 
 - 打包嵌入 pnpm standalone,干净机器上 `dsh plugin` 可用;`package:*` 脚本自动下载,`PNPM_MIRROR` 可换镜像
 - 打包模式以 `ELECTRON_RUN_AS_NODE` 运行 npm 发布的 `@deepseek-ai/dsh`;要最新 main 用 `DSH_SOURCE_REPO`
-- 本机有 Apple Developer ID 证书时 electron-builder 自动签名(未公证);公开分发前建议补 notarize 公证
+- **默认未签名**(adhoc,`dmg.sign: false`)。公开分发前需要:Apple Developer ID 签名 + notarize 公证
 
 ## 与 DeepSeek Harness 的关系
 
