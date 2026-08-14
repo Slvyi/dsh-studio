@@ -79,6 +79,13 @@ Notes:
 - Plugin management goes through the real `dsh plugin` pipeline with a bundled pnpm
 - Community project, not affiliated with DeepSeek; see [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) for the harness itself
 
+## Roadmap
+
+- Sign with an Apple Developer ID and notarize (required for smooth public distribution)
+- Automatic updates via electron-updater
+- Intel (x64) builds and dual-architecture CI
+- Automated upstream upgrades (today: watch workflow opens an issue; next: auto-bump dependencies and rebuild)
+
 ## Project layout
 
 ```
@@ -87,7 +94,3 @@ src/main/runtime.ts   dsh lifecycle: random port + spawn + readiness probe + gra
 src/main/security.ts  renderer security: contextIsolation + URL allowlist
 src/shared/contracts.ts  boot stage snapshot types
 ```
-
-## Acknowledgments
-
-This project was developed entirely with DeepSeek vibe coding — please forgive any rough edges. Right now the era is 梁圣 — it may not always be.

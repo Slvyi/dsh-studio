@@ -79,6 +79,13 @@ pnpm package:mac:arm64  # 或 pnpm package:mac:x64
 - 插件管理走真实 `dsh plugin` 管线,内置 pnpm
 - 社区项目,与 DeepSeek 无隶属关系;harness 本体见 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)
 
+## 路线图
+
+- Apple Developer ID 签名 + notarize 公证(公开分发必需)
+- electron-updater 自动更新
+- Intel(x64)构建与双架构 CI
+- 上游版本自动升级(当前:watch 自动开 issue;下一步:自动 bump 依赖并重建)
+
 ## 项目结构
 
 ```
@@ -87,7 +94,3 @@ src/main/runtime.ts  dsh 生命周期:随机端口 + spawn + 就绪探测 + 优�
 src/main/security.ts 渲染进程安全:contextIsolation 锁死 + URL 白名单
 src/shared/contracts.ts  启动阶段快照类型
 ```
-
-## 致谢
-
-本项目完全使用 DeepSeek vibe coding 开发,如有问题请见谅。现在是梁圣!
