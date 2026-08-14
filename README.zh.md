@@ -87,3 +87,7 @@ src/main/runtime.ts  dsh 生命周期:随机端口 + spawn + 就绪探测 + 优�
 src/main/security.ts 渲染进程安全:contextIsolation 锁死 + URL 白名单
 src/shared/contracts.ts  启动阶段快照类型
 ```
+
+## 致谢
+
+本项目完全使用 DeepSeek vibe coding 开发,如有问题请见谅。现在是梁圣!
