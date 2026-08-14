@@ -1,78 +1,89 @@
 # DSH Studio
 
-DeepSeek Harness 的 macOS 桌面客户端:托盘常驻窗口,本地运行 dsh web 服务,数据与 CLI 共用 `~/.dsh`——会话、插件、凭据完全复用,无迁移成本。
+[中文](README.zh.md)
 
-## 特性
+> A macOS desktop client for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`): a tray-resident window over the local dsh web service, sharing the same `~/.dsh` data home — sessions, plugins, and credentials are 100% compatible with the CLI and web edition.
 
-- **托盘常驻**:关窗不退出;菜单可显隐窗口 / 重启 dsh / 退出
-- **开机自启**:菜单「Launch at Login」一键开关
-- **数据复用 `~/.dsh`**:与 `dsh` CLI、web 版共享会话/插件/凭据
-- **内置 pnpm**:干净机器上插件管理(`dsh plugin`)开箱即用
-- **单实例防护**:检测到其他 dsh 实例时警告,避免并发写坏会话日志
+DSH Studio runs the official `@deepseek-ai/dsh` runtime (the same one `dsh web` boots), adds a native shell: tray persistence, launch at login, single-instance guard, and a bundled pnpm so plugin management works even on a clean machine.
 
-## 安装
+## Features
 
-1. 从 [Releases](https://github.com/Slvyi/dsh-studio/releases) 下载 `DSH Studio-<版本>-arm64.dmg`
-2. 打开 dmg,把 DSH Studio 拖入 Applications
-3. 未签名构建首次打开会被 Gatekeeper 拦截,放行:
+- **Tray-resident**: close the window, keep working — tray menu shows/hides the window, restarts dsh, or quits
+- **Launch at Login**: one menu toggle
+- **Same `~/.dsh` home**: swap freely between DSH Studio, `dsh` CLI, and the web edition — no migration, no copies
+- **Bundled pnpm**: `dsh plugin` works out of the box, even where pnpm is not installed
+- **Single-instance guard**: detects another dsh instance on boot and warns, so concurrent writers can't corrupt session logs
+
+## Install
+
+1. Download `DSH Studio-<version>-arm64.dmg` from [Releases](https://github.com/Slvyi/dsh-studio/releases)
+2. Open the dmg and drag DSH Studio into Applications
+3. Unsigned builds are blocked by Gatekeeper on first launch — allow it once:
 
    ```sh
    xattr -dr com.apple.quarantine "/Applications/DSH Studio.app"
    ```
 
-4. 配置 API key:应用内 Models 页面写入,或手动创建 `~/.dsh/.credentials.yaml`:
+4. Provide an API key: write it on the Models page inside the app, or create `~/.dsh/.credentials.yaml`:
 
    ```yaml
    DEEPSEEK_API_KEY: sk-xxxx
    ```
 
-5. 启动即用。旧机器迁移:直接拷贝整个 `~/.dsh` 目录即可带走全部会话与配置。
+5. Launch and go. To move from another machine, copy the whole `~/.dsh` directory — everything comes with it.
 
-> 要求:Apple Silicon(macOS 13+)。仅 arm64 构建,Intel 暂不支持。
+> Requirements: Apple Silicon, macOS 13+. arm64 builds only; Intel is not supported yet.
 
-## 本地调试
+## Development
 
 ```sh
 pnpm install
-pnpm dev              # 开发模式(用 npm 发布的 dsh 版本)
+pnpm dev              # dev mode, uses the npm-published dsh
 ```
 
-跟随 dsh 源码仓库 main 调试:
+Follow the dsh source repository `main` instead:
 
 ```sh
 DSH_SOURCE_REPO=/path/to/deepseek-harness pnpm dev
 ```
 
-环境变量:
+Environment variables:
 
-| 变量 | 作用 |
+| Variable | Effect |
 |---|---|
-| `DSH_SOURCE_REPO` | 设置 → 以源码仓库 `pnpm dsh` 启动(跟随仓库 main) |
-| `DSH_ENTRY` | 覆盖打包模式的 dsh 入口路径 |
-| `DSH_HOME` | 覆盖数据目录(默认 `~/.dsh`) |
+| `DSH_SOURCE_REPO` | when set, boot via `pnpm dsh` from a source checkout (follows `main`) |
+| `DSH_ENTRY` | override the packaged dsh entry path |
+| `DSH_HOME` | override the data home (default `~/.dsh`) |
 
-日志文件:`~/Library/Logs/dsh-desktop/dsh-studio.log`
+Logs: `~/Library/Logs/dsh-desktop/dsh-studio.log`
 
-## 部署(打包发布)
+## Packaging
 
 ```sh
-pnpm download-pnpm      # 首次:拉取 pnpm standalone 到 vendor/pnpm(~46MB,不入库)
-pnpm package:mac:arm64  # 或 pnpm package:mac:x64
+pnpm download-pnpm      # first run: fetch the pnpm standalone bundle into vendor/pnpm (~46 MB, not committed)
+pnpm package:mac:arm64  # or pnpm package:mac:x64
 ```
 
-产物在 `release/` 下(`.dmg` + `.app`)。
+Artifacts land in `release/` (`.dmg` + `.app`).
 
-要点:
+Notes:
 
-- 打包嵌入 pnpm(vendor/pnpm),干净机器上 `dsh plugin` 可用;`package:*` 脚本会自动先跑下载,`PNPM_MIRROR` 可换镜像源
-- 打包模式以 `ELECTRON_RUN_AS_NODE` 运行 npm 安装的 `@deepseek-ai/dsh`;需要最新 main 时用 `DSH_SOURCE_REPO`
-- 本机有 Apple Developer ID 证书时 electron-builder 自动签名(未公证);对外分发建议补 notarize 公证
+- The pnpm standalone bundle is embedded in the app so `dsh plugin` works on clean machines; `package:*` scripts fetch it automatically, `PNPM_MIRROR` switches the mirror
+- The packaged mode runs the npm-published `@deepseek-ai/dsh` via `ELECTRON_RUN_AS_NODE`; use `DSH_SOURCE_REPO` for the latest `main`
+- With an Apple Developer ID certificate, electron-builder signs automatically (not notarized); notarize before public distribution
 
-## 项目结构
+## DeepSeek Harness integration
+
+- Runs the official `@deepseek-ai/dsh` runtime — the exact engine behind `dsh web`
+- 100% data compatibility: same `~/.dsh` home, same session log format, same plugins and credentials
+- Plugin management goes through the real `dsh plugin` pipeline with a bundled pnpm
+- Community project, not affiliated with DeepSeek; see [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) for the harness itself
+
+## Project layout
 
 ```
-src/main/index.ts    主进程:窗口 / 菜单 / 托盘 / 单实例 / 生命周期
-src/main/runtime.ts  dsh 生命周期:随机端口 + spawn + 就绪探测 + 优雅退出
-src/main/security.ts 渲染进程安全:contextIsolation 锁死 + URL 白名单
-src/shared/contracts.ts  启动阶段快照类型
+src/main/index.ts     main process: window / menu / tray / single-instance / lifecycle
+src/main/runtime.ts   dsh lifecycle: random port + spawn + readiness probe + graceful exit
+src/main/security.ts  renderer security: contextIsolation + URL allowlist
+src/shared/contracts.ts  boot stage snapshot types
 ```
