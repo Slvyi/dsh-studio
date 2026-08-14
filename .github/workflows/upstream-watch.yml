@@ -1,22 +1,30 @@
-name: upstream-watch
+name: upstream-upgrade
 
-# Watch the published @deepseek-ai/dsh family for new releases and open an
-# issue when our packaged runtime falls behind. DSH Studio's packaged mode
-# pins the npm-published dsh; a new upstream release means we should bump
-# dependencies and ship a new build.
+# Automated upstream pipeline: check the published @deepseek-ai/dsh family;
+# when it moves, bump dependencies, rebuild the DMG on a macOS runner, commit
+# the bump, and publish a DRAFT Release (a human clicks Publish). On scheduled
+# failures an issue is opened so the drift never goes unnoticed.
 
 "on":
   schedule:
     # every 6 hours
     - cron: '0 */6 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force a rebuild even when upstream is current'
+        type: boolean
+        default: false
 
 permissions:
+  contents: write
   issues: write
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    outputs:
+      outdated: ${{ steps.flag.outputs.outdated }}
     steps:
       - uses: actions/checkout@v5
 
@@ -25,8 +33,72 @@ jobs:
         run: node scripts/check-upstream.mjs --json > /tmp/upstream.json
         continue-on-error: true
 
-      - name: Open issue when outdated
-        if: ${{ !cancelled() }}
+      - name: Flag outdated
+        id: flag
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          node -e "
+            const fs = require('fs')
+            let has = false
+            try { has = JSON.parse(fs.readFileSync('/tmp/upstream.json', 'utf8')).hasUpdate } catch {}
+            const force = process.env.FORCE === 'true'
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'outdated=' + (has || force) + '\n')
+          "
+
+  upgrade:
+    needs: check
+    if: ${{ needs.check.outputs.outdated == 'true' }}
+    runs-on: macos-15
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pnpm
+        run: npm install -g pnpm@11.21.0
+
+      - name: Bump dsh dependencies
+        id: bump
+        run: |
+          node scripts/bump-dsh-deps.mjs --apply > /tmp/bump.json
+          cat /tmp/bump.json
+          node -e "
+            const fs = require('fs')
+            const j = JSON.parse(fs.readFileSync('/tmp/bump.json', 'utf8'))
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'changed=' + j.changed.length + '\n')
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'target=' + j.target + '\n')
+          "
+
+      - name: Install and package
+        if: ${{ steps.bump.outputs.changed != '0' || inputs.force }}
+        run: |
+          pnpm install
+          pnpm package:mac:arm64
+
+      - name: Commit bump
+        if: ${{ steps.bump.outputs.changed != '0' }}
+        run: |
+          git config user.name 'dsh-studio-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add package.json pnpm-lock.yaml
+          git commit -m "chore(deps): bump dsh runtime to ${{ steps.bump.outputs.target }}"
+          git push
+
+      - name: Draft release
+        if: ${{ steps.bump.outputs.changed != '0' && success() }}
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/open-upstream-issue.mjs --file /tmp/upstream.json
+        run: |
+          V=$(node -p "require('./package.json').version")
+          gh release create "v${V}" --draft --title "DSH Studio v${V}" --notes "Automated build against @deepseek-ai/dsh ${{ steps.bump.outputs.target }}." "release/DSH Studio-${V}-arm64.dmg"
+
+  notify-on-failure:
+    needs: upgrade
+    if: ${{ failure() && github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: node scripts/open-upstream-issue.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
