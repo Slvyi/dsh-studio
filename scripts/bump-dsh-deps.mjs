@@ -21,6 +21,10 @@ const args = process.argv.slice(2)
 const apply = args.includes('--apply')
 const pkgFlag = args.indexOf('--package')
 const pkgPath = pkgFlag !== -1 ? args[pkgFlag + 1] : join(root, 'package.json')
+const upstreamFlag = args.indexOf('--upstream-manifest')
+// Test hook: a JSON file shaped like the upstream dsh manifest (dependencies
+// map). When given, replaces the network fetch of @deepseek-ai/dsh's manifest.
+const upstreamManifestPath = upstreamFlag !== -1 ? args[upstreamFlag + 1] : undefined
 const registry = process.env.NPM_REGISTRY ?? 'https://registry.npmjs.org'
 const CONCURRENCY = 10
 
@@ -40,6 +44,16 @@ function lt(a, b) {
     pa.major < pb.major ||
     (pa.major === pb.major && (pa.minor < pb.minor || (pa.minor === pb.minor && (pa.patch < pb.patch || (pa.patch === pb.patch && pa.pre < pb.pre)))))
   )
+}
+
+/**
+ * Pin a dependency range to an exact version. "^0.1.0-rc.6" → "0.1.0-rc.6";
+ * ranges we cannot pin exactly return undefined (caller falls back to target).
+ */
+function pinSpec(spec, fallback) {
+  const stripped = String(spec).trim().replace(/^[\^~]/, '')
+  if (/^\d+\.\d+\.\d+(-rc\.\d+)?$/.test(stripped)) return stripped
+  return /^[<>=*|]/.test(stripped) || /\s/.test(stripped) ? fallback : fallback
 }
 
 async function fetchJson(url) {
@@ -104,18 +118,53 @@ async function main() {
     }
   }
 
+  // Sync new upstream packages: anything the upstream dsh manifest depends on
+  // under the @deepseek-ai/ scope that we do not list yet is added at a pinned
+  // version. New dsh-* features ship as new packages; without this, they would
+  // land in pnpm's private store only and get lost during electron-builder's
+  // copy step (same failure as the earlier cordis-plugin-group miss).
+  let upstreamManifest
+  if (upstreamManifestPath !== undefined) {
+    upstreamManifest = JSON.parse(readFileSync(upstreamManifestPath, 'utf8'))
+  } else {
+    upstreamManifest = await fetchJson(`${registry}/@deepseek-ai%2Fdsh/${encodeURIComponent(target)}`)
+  }
+  const upstreamDeps = upstreamManifest.dependencies ?? {}
+
+  const added = []
+  const addCandidates = Object.keys(upstreamDeps).filter(
+    (key) => key.startsWith('@deepseek-ai/') && deps[key] === undefined,
+  )
+  const addExists = await mapWithConcurrency(addCandidates, CONCURRENCY, async (key) => {
+    const pinned = pinSpec(upstreamDeps[key], target)
+    try {
+      return { key, pinned, ok: await versionExists(key, pinned) }
+    } catch {
+      return { key, pinned, ok: false }
+    }
+  })
+  for (const { key, pinned, ok } of addExists) {
+    if (ok) {
+      added.push({ key, to: pinned })
+      deps[key] = pinned
+    } else {
+      skipped.push({ key, version: `(new package, unavailable at ${pinned})` })
+    }
+  }
+
+  const total = changed.length + added.length
   let version = manifest.version
-  if (changed.length > 0) {
+  if (total > 0) {
     const [major, minor, patch] = version.split('.').map(Number)
     version = `${major}.${minor}.${patch + 1}`
   }
 
-  if (apply && changed.length > 0) {
+  if (apply && total > 0) {
     manifest.version = version
     writeFileSync(pkgPath, `${JSON.stringify(manifest, null, 2)}\n`)
   }
 
-  console.log(JSON.stringify({ target, version, changed, skipped, apply }, null, 2))
+  console.log(JSON.stringify({ target, version, changed, added, skipped, total, apply }, null, 2))
 }
 
 main().catch((error) => {
