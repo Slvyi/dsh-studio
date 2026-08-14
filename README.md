@@ -92,3 +92,7 @@ src/main/runtime.ts   dsh lifecycle: random port + spawn + readiness probe + gra
 src/main/security.ts  renderer security: contextIsolation + URL allowlist
 src/shared/contracts.ts  boot stage snapshot types
 ```
+
+## Acknowledgments
+
+This project was developed entirely with DeepSeek vibe coding — please forgive any rough edges.
