@@ -8,20 +8,19 @@
  *
  * Env overrides:
  *   PNPM_VERSION  pnpm version to fetch (default 11.21.0)
- *   PNPM_PLATFORM pnpm platform asset (default darwin-arm64)
+ *   PNPM_PLATFORM pnpm platform asset (default: derived from current platform/arch)
  *   PNPM_MIRROR   base URL prefix for the tarball (default GitHub releases)
  */
 import { mkdir, rm, stat, writeFile } from 'node:fs/promises'
-import { createWriteStream } from 'node:fs'
 import { spawnSync } from 'node:child_process'
-import { pipeline } from 'node:stream/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Readable } from 'node:stream'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const version = process.env.PNPM_VERSION ?? '11.21.0'
-const platform = process.env.PNPM_PLATFORM ?? 'darwin-arm64'
+// pnpm standalone release assets: pnpm-<platform>-<arch>.tar.gz.
+// Derive from the running machine by default.
+const platform = process.env.PNPM_PLATFORM ?? `${process.platform}-${process.arch}`
 const mirror =
   process.env.PNPM_MIRROR ??
   'https://github.com/pnpm/pnpm/releases/download/v' + version
@@ -36,21 +35,23 @@ async function main() {
   await mkdir(vendorDir, { recursive: true })
 
   process.stderr.write(`downloading ${url}\n`)
-  const response = await fetch(url, { redirect: 'follow' })
-  if (!response.ok || response.body === null) {
-    throw new Error(`download failed: HTTP ${response.status} — need network (and a proxy for github.com)`)
+  // curl (not fetch): honours http_proxy/https_proxy env vars, and ships with
+  // macOS and Linux — no extra dependency.
+  const download = spawnSync('curl', ['-fsSL', '--retry', '3', url, '-o', tarball], { stdio: 'inherit' })
+  if (download.status !== 0) {
+    throw new Error(`download failed (curl exit ${download.status ?? 'unknown'}) — need network (and a proxy for github.com)`)
   }
-  await pipeline(Readable.fromWeb(response.body), createWriteStream(tarball))
   const size = (await stat(tarball)).size
   if (size < 10 * 1024 * 1024) {
     throw new Error(`suspiciously small tarball (${size} bytes); refusing to proceed`)
   }
 
   await mkdir(targetDir, { recursive: true })
-  const extract = spawnSync('tar', ['-xzf', tarball, '-C', targetDir], { stdio: 'inherit' })
-  if (extract.status !== 0) throw new Error('tar extraction failed')
+  const extract = spawnSync('tar', ['-xf', tarball, '-C', targetDir], { stdio: 'inherit' })
+  if (extract.status !== 0) throw new Error('archive extraction failed')
 
-  const check = spawnSync(join(targetDir, 'pnpm'), ['--version'], { encoding: 'utf8' })
+  const exeName = 'pnpm'
+  const check = spawnSync(join(targetDir, exeName), ['--version'], { encoding: 'utf8' })
   if (check.status !== 0) throw new Error('vendor/pnpm/pnpm does not run')
   if (check.stdout.trim() !== version) {
     throw new Error(`vendor/pnpm/pnpm version ${check.stdout.trim()} != expected ${version}`)

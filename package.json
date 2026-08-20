@@ -2,6 +2,7 @@
   "name": "dsh-desktop",
   "version": "0.1.0",
   "private": true,
+  "author": "Slvyi",
   "description": "Desktop shell for DeepSeek Harness: tray-resident window over the local dsh web service, reusing ~/.dsh data.",
   "type": "module",
   "main": "out/main/index.js",
@@ -32,6 +33,7 @@
     },
     "files": [
       "out/**/*",
+      "assets/**/*",
       "node_modules/**/*",
       "package.json"
     ],

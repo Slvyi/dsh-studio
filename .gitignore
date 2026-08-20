@@ -3,6 +3,7 @@ node_modules/
 out/
 dist/
 release/
+.electron-cache/
 
 # vendored pnpm standalone bundle (fetched by scripts/download-pnpm.mjs)
 vendor/pnpm/
@@ -11,6 +12,9 @@ vendor/pnpm.version
 
 # macOS noise
 .DS_Store
+
+# local agent skills (private, machine-local)
+.agents/
 
 # logs
 *.log

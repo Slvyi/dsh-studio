@@ -12,7 +12,7 @@ import { createWriteStream, existsSync, readdirSync, type WriteStream } from 'no
 import { mkdir } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { delimiter, dirname, join } from 'node:path'
 import type { RuntimePhase, RuntimeSnapshot } from '../shared/contracts'
 
 export interface LaunchSpec {
@@ -57,12 +57,12 @@ function dshEntryPath(): string {
 /**
  * 子进程 PATH 前缀(打包模式)。
  *
- * 三个目的:
+ * 目的:
  * 1. 内置 pnpm(Resources/pnpm)让 `dsh plugin` 在干净机器上可用;
- * 2. Finder/launchd 启动的进程 PATH 极瘦(/usr/bin:/bin:…),没有
+ * 2. macOS:Finder/launchd 启动的进程 PATH 极瘦(/usr/bin:/bin:…),没有
  *    Homebrew(/opt/homebrew/bin)等用户工具路径 —— dsh 的 bash 工具
  *    继承这个 PATH,补上常见位置避免"命令找不到";
- * 3. nvm 管理的 Node(nvm 是 shell 函数,不会进 launchd 环境)——探测
+ * 3. macOS:nvm 管理的 Node(nvm 是 shell 函数,不会进 launchd 环境)——探测
  *    最新版本目录,让 bash 工具也能用 `node`/`npm`。
  */
 function childPathPrefix(): string[] {
@@ -154,7 +154,7 @@ export class HarnessRuntime {
         ELECTRON_RUN_AS_NODE: '1',
         DSH_HOME: dshHome,
         NO_COLOR: '1',
-        PATH: [...childPathPrefix(), process.env.PATH ?? ''].filter(Boolean).join(':'),
+        PATH: [...childPathPrefix(), process.env.PATH ?? ''].filter(Boolean).join(delimiter),
       },
       stdio: ['pipe', 'pipe', 'pipe'],
       shell: spec.command === 'pnpm',

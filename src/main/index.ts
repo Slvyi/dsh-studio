@@ -24,16 +24,14 @@ function logPath(): string {
   return join(app.getPath('logs'), 'dsh-studio.log')
 }
 
+// app.getAppPath():dev=项目根,打包后(asar:false)=Resources/app,
+// 两处都包含 assets/ 下的图标(见 package.json build.files)。
 function iconPath(): string {
-  return app.isPackaged
-    ? join(process.resourcesPath, 'icon.png')
-    : join(app.getAppPath(), 'assets', 'icon.png')
+  return join(app.getAppPath(), 'assets', 'icon.png')
 }
 
 function trayIconPath(): string {
-  return app.isPackaged
-    ? join(process.resourcesPath, 'tray-icon.png')
-    : join(app.getAppPath(), 'assets', 'tray-icon.png')
+  return join(app.getAppPath(), 'assets', 'tray-icon.png')
 }
 
 function createWindow(): BrowserWindow {
@@ -138,8 +136,8 @@ function installMenu(): void {
     {
       label: 'Harness',
       submenu: [
-        { label: 'Restart dsh', accelerator: 'CmdOrCtrl+Shift+R', click: () => void launchHarness() },
-        { label: 'Show dsh Log', click: () => shell.showItemInFolder(logPath()) },
+        { label: '重启 dsh', accelerator: 'CmdOrCtrl+Shift+R', click: () => void launchHarness() },
+        { label: '打开 dsh 日志', click: () => shell.showItemInFolder(logPath()) },
         ...(process.platform === 'darwin' ? [] : [{ type: 'separator' as const }, { role: 'quit' as const }]),
       ],
     },
@@ -159,13 +157,13 @@ function installMenu(): void {
 function installTray(): void {
   const iconPath_ = trayIconPath()
   const icon = existsSync(iconPath_) ? nativeImage.createFromPath(iconPath_) : nativeImage.createEmpty()
-  if (!icon.isEmpty()) icon.setTemplateImage(true)
+  if (!icon.isEmpty() && process.platform === 'darwin') icon.setTemplateImage(true)
   tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon)
   tray.setToolTip('DSH Studio')
   tray.setContextMenu(
     Menu.buildFromTemplate([
       {
-        label: 'Show / Hide Window',
+        label: '显示/隐藏窗口',
         click: () => {
           if (mainWindow === undefined || mainWindow.isDestroyed()) {
             const snapshot = runtime.snapshot()
@@ -180,11 +178,11 @@ function installTray(): void {
         },
       },
       {
-        label: 'Restart dsh',
+        label: '重启 dsh',
         click: () => void launchHarness(),
       },
       {
-        label: 'Launch at Login',
+        label: '开机自启',
         type: 'checkbox',
         checked: app.getLoginItemSettings().openAtLogin,
         click: (item) => {
@@ -193,7 +191,7 @@ function installTray(): void {
       },
       { type: 'separator' },
       {
-        label: 'Quit DSH Studio',
+        label: '退出 DSH Studio',
         click: () => {
           quitting = true
           app.quit()
