@@ -97,7 +97,9 @@ async function main() {
   const target = await highestVersion('@deepseek-ai/dsh')
 
   const deps = manifest.dependencies ?? {}
-  const keys = Object.keys(deps).filter((key) => key.startsWith('@deepseek-ai/dsh-'))
+  // The main @deepseek-ai/dsh package itself must be bumped too; the
+  // dsh-* suffix filter alone would skip it (no trailing dash).
+  const keys = Object.keys(deps).filter((key) => key.startsWith('@deepseek-ai/dsh') && (key === '@deepseek-ai/dsh' || key.startsWith('@deepseek-ai/dsh-')))
 
   const exists = await mapWithConcurrency(keys, CONCURRENCY, async (key) => {
     try {
