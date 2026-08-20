@@ -83,11 +83,15 @@ jobs:
         run: |
           git config user.name 'dsh-studio-bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add package.json pnpm-lock.yaml
-          git commit -m "chore(deps): bump dsh runtime to ${{ steps.bump.outputs.target }}"
+          # Diagnostics: build steps may leave stray changes; capture them in
+          # the log so a future failure shows exactly what was dirty.
+          git status --porcelain
+          git add -A
+          git commit -m "chore(deps): bump dsh runtime to ${{ steps.bump.outputs.target }}" || true
           # The scheduled run may race with human pushes to main: rebase our
-          # bump commit onto the latest main before pushing.
-          git pull --rebase origin main
+          # bump commit onto the latest main before pushing. --autostash
+          # tolerates any remaining local changes.
+          git pull --rebase --autostash origin main
           git push
 
       - name: Draft release
