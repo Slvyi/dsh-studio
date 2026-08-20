@@ -73,7 +73,9 @@ jobs:
       - name: Install and package
         if: ${{ steps.bump.outputs.changed != '0' || inputs.force }}
         run: |
-          pnpm install
+          # bump-dsh-deps.mjs rewrites package.json only; pnpm-lock.yaml must
+          # be re-resolved. CI defaults to frozen-lockfile, which would fail.
+          pnpm install --no-frozen-lockfile
           pnpm package:mac:arm64
 
       - name: Commit bump
